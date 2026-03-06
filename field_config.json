@@ -1,0 +1,196 @@
+{
+  "fields": {
+    "revenue": {
+      "label": "Revenue",
+      "category": "core",
+      "xbrl_tags": [
+        "us-gaap:Revenues",
+        "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "us-gaap:RevenueFromContractWithCustomerIncludingAssessedTax",
+        "us-gaap:SalesRevenueNet",
+        "us-gaap:SalesRevenueGoodsNet",
+        "us-gaap:SalesRevenueServicesNet",
+        "us-gaap:RevenuesNetOfInterestExpense",
+        "us-gaap:InterestAndDividendIncomeOperating"
+      ],
+      "preferred_tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "unit": "USD",
+      "sign": "positive",
+      "derivable": false,
+      "html_labels": ["revenue", "net revenue", "net sales", "total revenue", "total net revenue", "revenues"]
+    },
+    "cogs": {
+      "label": "Cost of Goods Sold (COGS)",
+      "category": "core",
+      "xbrl_tags": [
+        "us-gaap:CostOfRevenue",
+        "us-gaap:CostOfGoodsAndServicesSold",
+        "us-gaap:CostOfGoodsSold",
+        "us-gaap:CostOfServices"
+      ],
+      "preferred_tag": "us-gaap:CostOfRevenue",
+      "unit": "USD",
+      "sign": "positive",
+      "derivable": false,
+      "html_labels": ["cost of revenue", "cost of goods sold", "cost of sales", "cost of products sold", "cost of services"]
+    },
+    "gross_profit": {
+      "label": "Gross Profit",
+      "category": "core",
+      "xbrl_tags": [
+        "us-gaap:GrossProfit"
+      ],
+      "preferred_tag": "us-gaap:GrossProfit",
+      "unit": "USD",
+      "sign": "positive",
+      "derivable": true,
+      "derivation": "revenue - cogs",
+      "html_labels": ["gross profit", "gross margin"]
+    },
+    "operating_income": {
+      "label": "Operating Income (EBIT)",
+      "category": "core",
+      "xbrl_tags": [
+        "us-gaap:OperatingIncomeLoss",
+        "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest"
+      ],
+      "preferred_tag": "us-gaap:OperatingIncomeLoss",
+      "unit": "USD",
+      "sign": "can_be_negative",
+      "derivable": true,
+      "derivation": "gross_profit - operating_expenses",
+      "html_labels": ["operating income", "income from operations", "operating profit", "loss from operations"]
+    },
+    "net_income": {
+      "label": "Net Income",
+      "category": "core",
+      "xbrl_tags": [
+        "us-gaap:NetIncomeLoss",
+        "us-gaap:NetIncomeLossAvailableToCommonStockholdersBasic",
+        "us-gaap:ProfitLoss",
+        "us-gaap:NetIncomeLossAttributableToParent"
+      ],
+      "preferred_tag": "us-gaap:NetIncomeLoss",
+      "unit": "USD",
+      "sign": "can_be_negative",
+      "derivable": false,
+      "html_labels": ["net income", "net loss", "net income (loss)", "net earnings", "net income attributable"]
+    },
+    "total_expenses": {
+      "label": "Total Operating Expenses",
+      "category": "hidden",
+      "xbrl_tags": [
+        "us-gaap:OperatingExpenses",
+        "us-gaap:CostsAndExpenses"
+      ],
+      "preferred_tag": "us-gaap:OperatingExpenses",
+      "unit": "USD",
+      "sign": "positive",
+      "derivable": true,
+      "derivation": "revenue - operating_income",
+      "html_labels": ["total operating expenses", "operating expenses", "total costs and expenses"]
+    },
+    "interest_expense": {
+      "label": "Interest Expense",
+      "category": "core",
+      "xbrl_tags": [
+        "us-gaap:InterestExpense",
+        "us-gaap:InterestExpenseDebt",
+        "us-gaap:InterestAndDebtExpense",
+        "us-gaap:InterestExpenseNonoperating"
+      ],
+      "preferred_tag": "us-gaap:InterestExpense",
+      "unit": "USD",
+      "sign": "positive",
+      "derivable": false,
+      "html_labels": ["interest expense", "interest and debt expense"]
+    },
+    "income_tax_expense": {
+      "label": "Income Tax Expense (Accrual Tax)",
+      "category": "hidden",
+      "xbrl_tags": [
+        "us-gaap:IncomeTaxExpenseBenefit",
+        "us-gaap:CurrentIncomeTaxExpenseBenefit",
+        "us-gaap:DeferredIncomeTaxExpenseBenefit"
+      ],
+      "preferred_tag": "us-gaap:IncomeTaxExpenseBenefit",
+      "unit": "USD",
+      "sign": "can_be_negative",
+      "derivable": false,
+      "html_labels": ["income tax expense", "provision for income taxes", "income taxes", "tax expense"]
+    },
+    "eps_basic": {
+      "label": "EPS Basic",
+      "category": "research",
+      "xbrl_tags": [
+        "us-gaap:EarningsPerShareBasic"
+      ],
+      "preferred_tag": "us-gaap:EarningsPerShareBasic",
+      "unit": "USD/shares",
+      "sign": "can_be_negative",
+      "derivable": false,
+      "html_labels": ["basic earnings per share", "earnings per share basic", "basic eps", "basic net income per share"]
+    },
+    "eps_diluted": {
+      "label": "EPS Diluted",
+      "category": "core",
+      "xbrl_tags": [
+        "us-gaap:EarningsPerShareDiluted"
+      ],
+      "preferred_tag": "us-gaap:EarningsPerShareDiluted",
+      "unit": "USD/shares",
+      "sign": "can_be_negative",
+      "derivable": false,
+      "html_labels": ["diluted earnings per share", "earnings per share diluted", "diluted eps", "diluted net income per share"]
+    },
+    "rd_expense": {
+      "label": "R&D Expense",
+      "category": "core",
+      "xbrl_tags": [
+        "us-gaap:ResearchAndDevelopmentExpense",
+        "us-gaap:ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"
+      ],
+      "preferred_tag": "us-gaap:ResearchAndDevelopmentExpense",
+      "unit": "USD",
+      "sign": "positive",
+      "derivable": false,
+      "html_labels": ["research and development", "r&d", "research & development", "research, development and engineering"]
+    },
+    "sga_expense": {
+      "label": "SG&A Expense",
+      "category": "core",
+      "xbrl_tags": [
+        "us-gaap:SellingGeneralAndAdministrativeExpense",
+        "us-gaap:GeneralAndAdministrativeExpense",
+        "us-gaap:SellingAndMarketingExpense",
+        "us-gaap:MarketingAndAdvertisingExpense"
+      ],
+      "preferred_tag": "us-gaap:SellingGeneralAndAdministrativeExpense",
+      "unit": "USD",
+      "sign": "positive",
+      "derivable": false,
+      "html_labels": ["selling, general and administrative", "sg&a", "general and administrative", "selling and marketing", "selling expenses"]
+    }
+  },
+  "field_order": [
+    "revenue", "cogs", "gross_profit", "operating_income", "net_income",
+    "total_expenses", "interest_expense", "income_tax_expense",
+    "eps_basic", "eps_diluted", "rd_expense", "sga_expense"
+  ],
+  "actions": {
+    "0": {"name": "xbrl_direct",    "description": "XBRL tag lookup (ground truth oracle path)"},
+    "1": {"name": "html_table",     "description": "HTML income statement table parser"},
+    "2": {"name": "regex_txt",      "description": "Regex match on raw TXT filing"},
+    "3": {"name": "llm_claude",     "description": "LLM extraction via Claude (anthropic SDK)"},
+    "4": {"name": "derived",        "description": "Arithmetic derivation from other fields"},
+    "5": {"name": "flag_missing",   "description": "Flag field as missing / low confidence"}
+  },
+  "reward": {
+    "exact_match":          1.0,
+    "within_1pct":          0.8,
+    "correct_magnitude":    0.3,
+    "null_or_missing":     -0.5,
+    "type_mismatch":       -1.0,
+    "high_latency_penalty":-0.2
+  }
+}
