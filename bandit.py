@@ -47,15 +47,33 @@ class UCB1Bandit:
         self.N = np.zeros(n_actions, dtype=np.float64)   # visit counts
         self.t = 0                                        # total steps
 
-    def select(self) -> int:
-        """Return action index with highest UCB score."""
+    def select(self, exclude: set[int] | None = None) -> int:
+        """Return action index with highest UCB score.
+
+        Args:
+            exclude: action indices already tried this episode. These are
+                     masked out so the bandit never repeats an action within
+                     one episode.
+        """
         self.t += 1
-        # Force each action to be tried at least once
-        untried = np.where(self.N == 0)[0]
+        mask = np.zeros(self.n_actions, dtype=bool)
+        if exclude:
+            for a in exclude:
+                if 0 <= a < self.n_actions:
+                    mask[a] = True
+
+        available = np.where(~mask)[0]
+        if len(available) == 0:
+            return 5  # all actions tried — flag as missing
+
+        # Force each available action to be tried at least once
+        untried = np.where((self.N == 0) & ~mask)[0]
         if len(untried) > 0:
             return int(untried[0])
 
-        ucb_scores = self.Q + self.c * np.sqrt(np.log(self.t) / self.N)
+        ucb_scores = self.Q.copy()
+        ucb_scores[~mask] += self.c * np.sqrt(np.log(self.t) / self.N[~mask])
+        ucb_scores[mask] = -np.inf
         return int(np.argmax(ucb_scores))
 
     def update(self, action: int, reward: float) -> None:
@@ -117,8 +135,8 @@ class FieldBandit:
             f: UCB1Bandit(N_ACTIONS, c=c) for f in FIELD_NAMES
         }
 
-    def select(self, field_name: str) -> int:
-        return self.bandits[field_name].select()
+    def select(self, field_name: str, exclude: set[int] | None = None) -> int:
+        return self.bandits[field_name].select(exclude=exclude)
 
     def update(self, field_name: str, action: int, reward: float) -> None:
         self.bandits[field_name].update(action, reward)
@@ -157,8 +175,8 @@ class ContextBandit:
             self._bandits[key] = UCB1Bandit(N_ACTIONS, c=self.c)
         return self._bandits[key]
 
-    def select(self, field_name: str, sic_code: Optional[int] = None) -> int:
-        return self._get(self._key(field_name, sic_code)).select()
+    def select(self, field_name: str, sic_code: Optional[int] = None, exclude: set[int] | None = None) -> int:
+        return self._get(self._key(field_name, sic_code)).select(exclude=exclude)
 
     def update(
         self, field_name: str, action: int, reward: float, sic_code: Optional[int] = None

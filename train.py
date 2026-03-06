@@ -117,10 +117,11 @@ def run_bandit_training(
             sic_code = meta.get("sic_code")
 
             episode_id = f"{filing_id}:{field_name}:{int(time.time()*1000)}"
-            total_reward = 0.0
+            best_reward = -np.inf
             best_value = None
             best_confidence = 0.0
             best_action = None
+            tried_actions: set[int] = set()
             step = 0
 
             # Log episode start to DB
@@ -130,14 +131,15 @@ def run_bandit_training(
 
             terminated = False
             while not terminated:
-                # Bandit selects action
+                # Bandit selects action — exclude already-tried actions this episode
                 if bandit_type == "context":
-                    action = bandit.select(field_name, sic_code=sic_code)
+                    action = bandit.select(field_name, sic_code=sic_code, exclude=tried_actions)
                 else:
-                    action = bandit.select(field_name)
+                    action = bandit.select(field_name, exclude=tried_actions)
+                tried_actions.add(action)
 
                 obs, reward, terminated, truncated, step_info = env.step(action)
-                total_reward += reward
+                best_reward = max(best_reward, reward)
 
                 # Update bandit
                 if bandit_type == "context":
@@ -172,7 +174,7 @@ def run_bandit_training(
                     )
                 step += 1
 
-            episode_rewards.append(total_reward)
+            episode_rewards.append(best_reward if best_reward > -np.inf else -0.5)
 
             # Close episode in DB
             if db_conn:
@@ -180,7 +182,7 @@ def run_bandit_training(
                 close_episode(
                     db_conn, episode_id,
                     n_steps=step,
-                    total_reward=total_reward,
+                    total_reward=best_reward,
                     best_action=best_action,
                     best_value=best_value,
                     best_confidence=best_confidence,

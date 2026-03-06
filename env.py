@@ -250,9 +250,10 @@ class EdgarExtractionEnv(gym.Env):
         self._action_counts[action] = n
 
         # Termination conditions
+        # NOTE: we do NOT terminate early on high reward — the agent must exhaust
+        # its step budget so the bandit sees fallback actions in every episode.
         terminated = (
-            action == 5                           # agent flagged as missing
-            or reward >= 0.8                      # high-quality extraction found
+            action == 5                           # agent chose to give up
             or ctx.step_count >= self.max_steps   # step budget exhausted
         )
         truncated = False
