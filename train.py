@@ -237,12 +237,17 @@ def _print_bandit_summary(bandit, action_counts, action_rewards, episode_rewards
         print("\nBest action per field (bandit Q-values):")
         print(f"  {'Field':<25} {'BestAction':<18} {'Q':>8}")
         print("  " + "-" * 54)
-        for field_name in summary:
+        for field_name in sorted(summary, key=lambda k: summary[k].get("best_action", 0)):
             entry = summary[field_name]
-            if isinstance(entry, dict) and "best_action" in entry:
-                ba = entry["best_action"]
+            if not (isinstance(entry, dict) and "best_action" in entry):
+                continue
+            ba = entry["best_action"]
+            # ContextBandit stores Q as a list; FieldBandit stores under "stats"
+            if "Q" in entry:
+                q = entry["Q"][ba] if ba < len(entry["Q"]) else 0.0
+            else:
                 q = entry.get("stats", {}).get(ba, {}).get("mean_reward", 0.0)
-                print(f"  {field_name:<25} {ACTION_NAMES[ba]:<18} {q:>+8.4f}")
+            print(f"  {field_name:<35} {ACTION_NAMES[ba]:<18} {q:>+8.4f}")
     except Exception:
         pass
     print("=" * 65 + "\n")

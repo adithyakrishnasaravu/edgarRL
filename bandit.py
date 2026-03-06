@@ -130,7 +130,8 @@ class FieldBandit:
         return {
             field: {
                 "best_action": self.bandits[field].best_action,
-                "stats": self.bandits[field].action_stats,
+                "Q": self.bandits[field].Q.tolist(),
+                "N": self.bandits[field].N.tolist(),
                 "total_steps": self.bandits[field].t,
             }
             for field in FIELD_NAMES
