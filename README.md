@@ -1,4 +1,4 @@
-# edgaRL
+# edgarRL
 
 A reinforcement learning system that learns *how* to extract financial data from SEC 10-K filings — not just what to extract.
 
