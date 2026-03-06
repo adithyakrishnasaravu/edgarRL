@@ -149,6 +149,12 @@ class EdgarExtractionEnv(gym.Env):
         # Extractor callables — lazy import to avoid circular deps
         self._extractors: dict[int, Any] = extractors or {}
 
+        # Filing-level extraction cache: {filing_id: {field_name: value}}
+        # Persists across episodes so derivation can use values extracted by
+        # earlier episodes (e.g. revenue extracted in episode N is available
+        # when deriving gross_profit in episode N+K for the same filing).
+        self._extraction_cache: dict[str, dict[str, float]] = {}
+
         # Episode state (populated by reset())
         self._ctx: Optional[EpisodeContext] = None
         self._rng = np.random.default_rng()
@@ -227,6 +233,11 @@ class EdgarExtractionEnv(gym.Env):
 
         ctx.current_extracted = extracted_value
         ctx.current_confidence = confidence
+
+        # Populate filing-level cache so derivation can use real extracted values
+        if extracted_value is not None:
+            self._extraction_cache.setdefault(ctx.filing_id, {})[ctx.field_name] = extracted_value
+
         ctx.attempts.append({
             "action": action,
             "value": extracted_value,
@@ -439,22 +450,38 @@ class EdgarExtractionEnv(gym.Env):
             return None, 0.0, {"error": str(e)}
 
     def _compute_derivation(self, formula: str, ctx: EpisodeContext) -> Optional[float]:
-        """Evaluate simple arithmetic derivation formulas."""
-        # Map field aliases used in derivation strings to extracted values
+        """Evaluate simple arithmetic derivation formulas.
+
+        Input field values are resolved in priority order:
+          1. Filing-level extraction cache (values extracted by prior episodes
+             for this filing via HTML/regex/LLM — no oracle involved).
+          2. XBRL oracle (fallback only; keeps derived useful even early in
+             training before the cache is warm).
+        """
         alias_map = {
-            "revenue": "revenue",
-            "cogs": "cogs",
-            "gross_profit": "gross_profit",
-            "operating_income": "operating_income",
+            "revenue":            "revenue",
+            "cogs":               "cogs",
+            "gross_profit":       "gross_profit",
+            "operating_income":   "operating_income",
             "operating_expenses": "total_expenses",
         }
+        filing_cache = self._extraction_cache.get(ctx.filing_id, {})
         values: dict[str, float] = {}
+
         for alias, field_name in alias_map.items():
-            if alias in formula:
+            if alias not in formula:
+                continue
+            # 1. Use cached value from a prior extraction (non-oracle)
+            if field_name in filing_cache:
+                values[alias] = filing_cache[field_name]
+            # 2. Fall back to XBRL oracle
+            elif ctx.filing_xbrl is not None:
                 res = extract_field(ctx.filing_xbrl, field_name)
                 if res.value is None:
                     return None
                 values[alias] = res.value
+            else:
+                return None
 
         try:
             return float(eval(formula, {"__builtins__": {}}, values))  # noqa: S307
