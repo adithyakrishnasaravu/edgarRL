@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Data — too large for git
+filings/
+checkpoints/
+edgar_rl.duckdb
+tb_logs/
+
+# Secrets
+.env
+
+# OS
+.DS_Store
