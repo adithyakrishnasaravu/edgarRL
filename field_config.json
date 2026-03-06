@@ -59,7 +59,7 @@
       "sign": "can_be_negative",
       "derivable": true,
       "derivation": "gross_profit - operating_expenses",
-      "html_labels": ["operating income", "income from operations", "operating profit", "loss from operations"]
+      "html_labels": ["operating income", "income from operations", "operating profit", "loss from operations", "operating loss", "operating income (loss)", "operating income loss"]
     },
     "net_income": {
       "label": "Net Income",
@@ -117,7 +117,7 @@
       "unit": "USD",
       "sign": "can_be_negative",
       "derivable": false,
-      "html_labels": ["income tax expense", "provision for income taxes", "income taxes", "tax expense"]
+      "html_labels": ["income tax expense", "provision for income taxes", "income taxes", "tax expense", "provision for benefit from income taxes", "benefit from income taxes", "income tax expense benefit", "provision for income taxes benefit"]
     },
     "eps_basic": {
       "label": "EPS Basic",
@@ -129,7 +129,7 @@
       "unit": "USD/shares",
       "sign": "can_be_negative",
       "derivable": false,
-      "html_labels": ["basic earnings per share", "earnings per share basic", "basic eps", "basic net income per share"]
+      "html_labels": ["basic earnings per share", "earnings per share basic", "basic eps", "basic net income per share", "basic net income (loss) per share", "net income per share basic", "net loss per share basic", "net income loss per share basic", "basic and diluted", "loss per share basic and diluted", "basic"]
     },
     "eps_diluted": {
       "label": "EPS Diluted",
@@ -141,7 +141,7 @@
       "unit": "USD/shares",
       "sign": "can_be_negative",
       "derivable": false,
-      "html_labels": ["diluted earnings per share", "earnings per share diluted", "diluted eps", "diluted net income per share"]
+      "html_labels": ["diluted earnings per share", "earnings per share diluted", "diluted eps", "diluted net income per share", "diluted net income (loss) per share", "net income per share diluted", "net loss per share diluted", "net income loss per share diluted", "diluted and basic", "diluted"]
     },
     "rd_expense": {
       "label": "R&D Expense",
