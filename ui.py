@@ -1,5 +1,5 @@
 """
-ui.py — edgaRL Dashboard
+ui.py — edgarRL Dashboard
 Run: .venv/bin/streamlit run ui.py
 """
 
@@ -11,7 +11,7 @@ from pathlib import Path
 import streamlit as st
 
 st.set_page_config(
-    page_title="edgaRL",
+    page_title="edgarRL",
     page_icon="▣",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -229,7 +229,7 @@ code, pre {
 
 REGISTRY_PATH  = Path("filings/registry.json")
 CHECKPOINT_DIR = Path("checkpoints")
-DB_PATH        = Path("edgar_rl.duckdb")
+METRICS_PATH   = Path("checkpoints/metrics.json")
 
 ALL_FIELDS = [
     "revenue", "cogs", "gross_profit", "operating_income", "net_income",
@@ -469,7 +469,7 @@ if not registry:
 
 with st.sidebar:
     st.markdown(
-        "<p style='font-size:18px;font-weight:600;color:#fff;letter-spacing:.06em;margin-bottom:2px'>EDGARL</p>"
+        "<p style='font-size:18px;font-weight:600;color:#fff;letter-spacing:.06em;margin-bottom:2px'>edgarRL</p>"
         "<p style='font-size:8px;color:#333;letter-spacing:.2em;margin-top:0'>EXTRACTION DASHBOARD</p>",
         unsafe_allow_html=True,
     )
@@ -497,7 +497,7 @@ with st.sidebar:
     st.markdown("---")
     run_btn = st.button("▶  RUN EXTRACTION")
     st.markdown(
-        "<p style='font-size:8px;color:#222;margin-top:32px;letter-spacing:.1em'>edgaRL · SEC 10-K RL System</p>",
+        "<p style='font-size:8px;color:#222;margin-top:32px;letter-spacing:.1em'>edgarRL · SEC 10-K RL System</p>",
         unsafe_allow_html=True,
     )
 
@@ -605,85 +605,62 @@ with tab2:
 
     st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
-    # ── Training history from DuckDB ─────────────────────────────────────────
+    # ── Training history from metrics.json ───────────────────────────────────
     st.markdown("<p style='font-size:9px;color:#333;letter-spacing:.18em'>TRAINING HISTORY</p>", unsafe_allow_html=True)
 
-    if not DB_PATH.exists():
-        st.markdown("<p style='color:#333;font-size:10px'>No training database. Run <code>python train.py</code> first.</p>", unsafe_allow_html=True)
+    if not METRICS_PATH.exists():
+        st.markdown("<p style='color:#333;font-size:10px'>No metrics found. Run <code>python train.py</code> first.</p>", unsafe_allow_html=True)
     else:
         try:
-            import duckdb
             import pandas as pd
-            # Open, read all data, close immediately so the file lock is released
-            # before training tries to open the DB for writing.
-            conn = duckdb.connect(str(DB_PATH), read_only=True)
-            tables = [r[0] for r in conn.execute("SHOW TABLES").fetchall()]
-            df_ep = pd.DataFrame()
-            if "episodes" in tables:
-                df_ep = conn.execute(
-                    "SELECT episode_id, field_name, reward, action_taken FROM episodes ORDER BY episode_id"
-                ).df()
-            conn.close()  # release lock immediately
+            metrics = json.loads(METRICS_PATH.read_text())
 
-            if not df_ep.empty:
-                df_ep["rolling"] = df_ep["reward"].rolling(100, min_periods=1).mean()
-
+            # Rolling reward chart
+            rolling = metrics.get("rolling_history", [])
+            if rolling:
+                df_roll = pd.DataFrame(rolling).set_index("episode")
                 st.markdown("<p style='font-size:9px;color:#333;letter-spacing:.1em;margin-bottom:4px'>ROLLING AVG REWARD  (100-episode window)</p>", unsafe_allow_html=True)
-                st.line_chart(
-                    df_ep.set_index("episode_id")[["rolling"]],
-                    height=200,
-                    color=["#ffffff"],
-                )
+                st.line_chart(df_roll[["rolling_avg"]], height=200, color=["#ffffff"])
 
-                st.markdown("<p style='font-size:9px;color:#333;letter-spacing:.1em;margin:16px 0 4px'>PER-FIELD ACCURACY</p>", unsafe_allow_html=True)
-
-                stats = (
-                    df_ep.groupby("field_name")
-                    .agg(mean_reward=("reward","mean"), win_rate=("reward", lambda x: (x>=0.8).mean()), n=("episode_id","count"))
-                    .reset_index()
-                    .sort_values("mean_reward", ascending=False)
-                )
-
+            # Per-field Q-value table from bandit summary
+            field_stats = metrics.get("field_stats", {})
+            if field_stats:
+                st.markdown("<p style='font-size:9px;color:#333;letter-spacing:.1em;margin:16px 0 4px'>PER-FIELD BEST ACTION</p>", unsafe_allow_html=True)
                 rows_html = ""
-                for _, row in stats.iterrows():
-                    wr_pct = f"{row.win_rate*100:.0f}%"
-                    mr     = row.mean_reward
-                    mr_cls = "score-pass" if mr >= 0.8 else ("score-partial" if mr >= 0.3 else "score-fail")
+                for key, fs in sorted(field_stats.items(), key=lambda x: -x[1].get("best_q", 0)):
+                    field_label = key.split("/")[0]
+                    sector      = key.split("/")[1] if "/" in key else ""
+                    best_q      = fs.get("best_q", 0.0)
+                    q_cls       = "score-pass" if best_q >= 0.8 else ("score-partial" if best_q >= 0.3 else "score-fail")
                     rows_html += f"""
                     <tr>
-                      <td class="field-name">{FIELD_LABELS.get(row.field_name, row.field_name)}</td>
-                      <td class="num {mr_cls}">{mr:+.3f}</td>
-                      <td class="num" style="color:#fff">{wr_pct}</td>
-                      <td class="num dash">{int(row.n):,}</td>
+                      <td class="field-name">{FIELD_LABELS.get(field_label, field_label)}</td>
+                      <td class="field-name" style="color:#333">{sector}</td>
+                      <td class="num" style="color:#fff">{fs.get("best_action","?")}</td>
+                      <td class="num {q_cls}">{best_q:+.3f}</td>
                     </tr>"""
-
                 st.markdown(f"""
                 <div class="rl-table-wrap">
                   <table class="rl-table">
-                    <thead>
-                      <tr>
-                        <th>Field</th>
-                        <th class="num">Mean Reward</th>
-                        <th class="num">Win Rate</th>
-                        <th class="num">Episodes</th>
-                      </tr>
-                    </thead>
+                    <thead><tr>
+                      <th>Field</th><th>Sector</th>
+                      <th class="num">Best Action</th><th class="num">Q</th>
+                    </tr></thead>
                     <tbody>{rows_html}</tbody>
                   </table>
                 </div>""", unsafe_allow_html=True)
 
-                st.markdown("<hr style='margin:20px 0'>", unsafe_allow_html=True)
-                total_eps   = df_ep["episode_id"].nunique()
-                overall_win = (df_ep["reward"] >= 0.8).mean()
-                last100_win = (df_ep.tail(100)["reward"] >= 0.8).mean()
-
-                ma, mb, mc = st.columns(3)
-                ma.metric("Total Episodes",    f"{total_eps:,}")
-                mb.metric("Overall Win Rate",  f"{overall_win*100:.1f}%")
-                mc.metric("Last 100 Win Rate", f"{last100_win*100:.1f}%")
+            st.markdown("<hr style='margin:20px 0'>", unsafe_allow_html=True)
+            total_eps  = metrics.get("total_episodes", 0)
+            mean_r     = metrics.get("mean_reward", 0.0)
+            final_100  = metrics.get("final_100_avg", 0.0)
+            ma, mb, mc = st.columns(3)
+            ma.metric("Total Episodes",   f"{total_eps:,}")
+            mb.metric("Mean Reward",      f"{mean_r:+.3f}")
+            mc.metric("Last 100 Avg",     f"{final_100:+.3f}")
 
         except Exception as exc:
-            st.markdown(f"<p style='color:#333;font-size:10px'>DB error: {exc}</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='color:#333;font-size:10px'>Metrics error: {exc}</p>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

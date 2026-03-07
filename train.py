@@ -80,7 +80,7 @@ def run_bandit_training(
     bandit_type: str = "field",       # "field" | "context"
     max_steps: int = 3,
     log_every: int = 100,
-    checkpoint_every: int = 500,
+    checkpoint_every: int = 100,
     db_conn=None,
 ) -> None:
     from bandit import FieldBandit, ContextBandit, save_bandit, load_bandit
@@ -211,11 +211,65 @@ def run_bandit_training(
             # Checkpoint
             if (ep + 1) % checkpoint_every == 0:
                 save_bandit(bandit, BANDIT_PATH)
+                _write_metrics_snapshot(bandit, action_counts, action_rewards, episode_rewards)
                 logger.info("Checkpoint saved → %s", BANDIT_PATH)
 
     # Final checkpoint
     save_bandit(bandit, BANDIT_PATH)
+    _write_metrics_snapshot(bandit, action_counts, action_rewards, episode_rewards)
     _print_bandit_summary(bandit, action_counts, action_rewards, episode_rewards)
+
+
+METRICS_PATH = Path(__file__).parent / "checkpoints" / "metrics.json"
+
+
+def _write_metrics_snapshot(bandit, action_counts, action_rewards, episode_rewards) -> None:
+    """Write a JSON snapshot of training metrics for the UI to read.
+
+    The UI reads this file instead of the DuckDB database, so training and
+    the Streamlit dashboard can run simultaneously without lock conflicts.
+    """
+    window = 100
+    history = [
+        {"episode": i + 1, "reward": float(r)}
+        for i, r in enumerate(episode_rewards)
+    ]
+    rolling = [
+        {
+            "episode": h["episode"],
+            "rolling_avg": float(np.mean(episode_rewards[max(0, i - window + 1): i + 1])),
+        }
+        for i, h in enumerate(history)
+    ]
+
+    summary = bandit.summary()
+    field_stats = {}
+    for key, entry in summary.items():
+        if not isinstance(entry, dict) or "best_action" not in entry:
+            continue
+        ba = entry["best_action"]
+        q_values = entry.get("Q", [])
+        field_stats[key] = {
+            "best_action": ACTION_NAMES[ba] if ba < len(ACTION_NAMES) else "?",
+            "best_q": float(q_values[ba]) if ba < len(q_values) else 0.0,
+            "Q": [float(q) for q in q_values],
+            "N": [int(n) for n in entry.get("N", [])],
+        }
+
+    payload = {
+        "total_episodes":  len(episode_rewards),
+        "mean_reward":     float(np.mean(episode_rewards)) if episode_rewards else 0.0,
+        "final_100_avg":   float(np.mean(episode_rewards[-100:])) if episode_rewards else 0.0,
+        "action_usage":    {ACTION_NAMES[i]: int(action_counts[i]) for i in range(len(ACTION_NAMES))},
+        "action_rewards":  {ACTION_NAMES[i]: float(action_rewards[i] / max(action_counts[i], 1))
+                            for i in range(len(ACTION_NAMES))},
+        "rolling_history": rolling,
+        "field_stats":     field_stats,
+    }
+
+    METRICS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(METRICS_PATH, "w") as f:
+        json.dump(payload, f)
 
 
 def _print_bandit_summary(bandit, action_counts, action_rewards, episode_rewards) -> None:
