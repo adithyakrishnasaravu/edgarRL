@@ -311,18 +311,20 @@ class EdgarExtractionEnv(gym.Env):
         ptr += 5
 
         # --- Last attempt result (6 dims) ---
-        if ctx is not None and ctx.attempts:
-            last = ctx.attempts[-1]
-            obs[ptr + 0] = 1.0                             # tried flag
-            obs[ptr + 1] = float(last["value"] is not None)
-            obs[ptr + 2] = float(last.get("confidence", 0.0))
-            val = last.get("value")
-            if val is not None and val != 0:
-                obs[ptr + 3] = float(np.clip(np.log10(abs(val)), -3, 15))
-                obs[ptr + 4] = float(np.sign(val))
-            gt = ctx.ground_truth
-            if val is not None and gt is not None and gt != 0:
-                obs[ptr + 5] = float(np.clip(abs(val - gt) / abs(gt), 0, 10))
+        # Note: no ground-truth-derived features here — all must be observable
+        # at inference time without access to the XBRL oracle.
+        if ctx is not None:
+            if ctx.attempts:
+                last = ctx.attempts[-1]
+                obs[ptr + 0] = 1.0                                 # has attempted
+                obs[ptr + 1] = float(last["value"] is not None)    # extraction succeeded
+                obs[ptr + 2] = float(last.get("confidence", 0.0))  # extractor confidence
+                val = last.get("value")
+                if val is not None and val != 0:
+                    obs[ptr + 3] = float(np.clip(np.log10(abs(val)), -3, 15))  # magnitude
+                    obs[ptr + 4] = float(np.sign(val))                         # sign
+            # Steps used so far (normalized) — replaces oracle-leaking rel_err
+            obs[ptr + 5] = float(ctx.step_count / max(self.max_steps, 1))
         ptr += 6
 
         # --- Filing metadata (3 dims) ---
