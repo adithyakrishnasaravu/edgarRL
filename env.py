@@ -384,14 +384,9 @@ class EdgarExtractionEnv(gym.Env):
         if ctx.filing_xbrl is None:
             return None, 0.0, {"error": "no_xbrl"}
         result: ExtractionResult = extract_field(ctx.filing_xbrl, ctx.field_name)
-        # If XBRL tag missing but field is derivable, try derivation immediately
-        if result.value is None:
-            field_cfg = FIELDS.get(ctx.field_name, {})
-            if field_cfg.get("derivable"):
-                derivation = field_cfg.get("derivation", "")
-                derived = self._compute_derivation(derivation, ctx)
-                if derived is not None:
-                    return derived, 0.75, {"xbrl_tag": None, "derivation": derivation, "fallback": "derived"}
+        # Return exactly what XBRL found — no silent fallback to derivation.
+        # If the tag is missing, the bandit must learn to try action 4 (derived)
+        # explicitly. Mixing them here corrupts credit assignment.
         return result.value, result.confidence, {"xbrl_tag": result.xbrl_tag, "error": result.error}
 
     # --- Action 1: HTML table ---
