@@ -445,9 +445,12 @@ if __name__ == "__main__":
 
     db_conn = None
     if not args.no_db:
-        from db import get_connection
-        db_conn = get_connection(DB_PATH)
-        logger.info("DB logging enabled → %s", DB_PATH)
+        try:
+            from db import get_connection
+            db_conn = get_connection(DB_PATH)
+            logger.info("DB logging enabled → %s", DB_PATH)
+        except Exception as e:
+            logger.warning("DB locked or unavailable — continuing without logging (%s)", e)
 
     try:
         if args.eval:
