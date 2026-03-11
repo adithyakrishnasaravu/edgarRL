@@ -35,9 +35,14 @@ div[data-testid="stMainBlockContainer"] {
     color: #d4d4d4 !important;
 }
 
-/* Remove top padding / Streamlit chrome */
-header[data-testid="stHeader"] { display: none !important; }
-div[data-testid="stToolbar"]   { display: none !important; }
+/* Hide Streamlit branding inside header but keep the sidebar toggle */
+header[data-testid="stHeader"] {
+    background-color: #0a0a0a !important;
+    border-bottom: none !important;
+}
+div[data-testid="stToolbar"]          { display: none !important; }
+button[data-testid="baseButton-headerNoPadding"] { display: none !important; }
+#MainMenu                             { display: none !important; }
 .block-container {
     padding-top: 2rem !important;
     padding-bottom: 2rem !important;
