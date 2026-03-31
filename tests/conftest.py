@@ -152,6 +152,112 @@ def db_connection(tmp_path):
 
 
 @pytest.fixture
+def full_ground_truth_registry(tmp_path):
+    """Return a registry with facts for ALL 12 fields.
+
+    This guarantees that env.reset() always yields a non-None ground_truth
+    regardless of which field is randomly selected — necessary because
+    env.reset(seed=N) does NOT seed env._rng (Gymnasium custom-RNG gotcha).
+    """
+    facts_data = {
+        "facts": {
+            "us-gaap": {
+                # revenue
+                "RevenueFromContractWithCustomerExcludingAssessedTax": {
+                    "units": {"USD": [{"val": 394_328_000_000, "form": "10-K", "fy": 2024,
+                        "fp": "FY", "accn": "0000320193-24-000123",
+                        "start": "2023-10-01", "end": "2024-09-28"}]}
+                },
+                # cogs
+                "CostOfRevenue": {
+                    "units": {"USD": [{"val": 210_352_000_000, "form": "10-K", "fy": 2024,
+                        "fp": "FY", "accn": "0000320193-24-000123",
+                        "start": "2023-10-01", "end": "2024-09-28"}]}
+                },
+                # gross_profit
+                "GrossProfit": {
+                    "units": {"USD": [{"val": 183_976_000_000, "form": "10-K", "fy": 2024,
+                        "fp": "FY", "accn": "0000320193-24-000123",
+                        "start": "2023-10-01", "end": "2024-09-28"}]}
+                },
+                # operating_income
+                "OperatingIncomeLoss": {
+                    "units": {"USD": [{"val": 123_216_000_000, "form": "10-K", "fy": 2024,
+                        "fp": "FY", "accn": "0000320193-24-000123",
+                        "start": "2023-10-01", "end": "2024-09-28"}]}
+                },
+                # net_income
+                "NetIncomeLoss": {
+                    "units": {"USD": [{"val": 93_736_000_000, "form": "10-K", "fy": 2024,
+                        "fp": "FY", "accn": "0000320193-24-000123",
+                        "start": "2023-10-01", "end": "2024-09-28"}]}
+                },
+                # total_expenses
+                "OperatingExpenses": {
+                    "units": {"USD": [{"val": 271_112_000_000, "form": "10-K", "fy": 2024,
+                        "fp": "FY", "accn": "0000320193-24-000123",
+                        "start": "2023-10-01", "end": "2024-09-28"}]}
+                },
+                # interest_expense
+                "InterestExpense": {
+                    "units": {"USD": [{"val": 3_002_000_000, "form": "10-K", "fy": 2024,
+                        "fp": "FY", "accn": "0000320193-24-000123",
+                        "start": "2023-10-01", "end": "2024-09-28"}]}
+                },
+                # income_tax_expense
+                "IncomeTaxExpenseBenefit": {
+                    "units": {"USD": [{"val": 29_749_000_000, "form": "10-K", "fy": 2024,
+                        "fp": "FY", "accn": "0000320193-24-000123",
+                        "start": "2023-10-01", "end": "2024-09-28"}]}
+                },
+                # eps_basic
+                "EarningsPerShareBasic": {
+                    "units": {"USD/shares": [{"val": 6.11, "form": "10-K", "fy": 2024,
+                        "fp": "FY", "accn": "0000320193-24-000123",
+                        "start": "2023-10-01", "end": "2024-09-28"}]}
+                },
+                # eps_diluted
+                "EarningsPerShareDiluted": {
+                    "units": {"USD/shares": [{"val": 6.08, "form": "10-K", "fy": 2024,
+                        "fp": "FY", "accn": "0000320193-24-000123",
+                        "start": "2023-10-01", "end": "2024-09-28"}]}
+                },
+                # rd_expense
+                "ResearchAndDevelopmentExpense": {
+                    "units": {"USD": [{"val": 31_370_000_000, "form": "10-K", "fy": 2024,
+                        "fp": "FY", "accn": "0000320193-24-000123",
+                        "start": "2023-10-01", "end": "2024-09-28"}]}
+                },
+                # sga_expense
+                "SellingGeneralAndAdministrativeExpense": {
+                    "units": {"USD": [{"val": 29_390_000_000, "form": "10-K", "fy": 2024,
+                        "fp": "FY", "accn": "0000320193-24-000123",
+                        "start": "2023-10-01", "end": "2024-09-28"}]}
+                },
+            }
+        }
+    }
+    facts_path = tmp_path / "all_fields_facts.json"
+    facts_path.write_text(json.dumps(facts_data))
+
+    return [
+        {
+            "filing_id": "0000320193/0000320193-24-000123",
+            "cik": "0000320193",
+            "accession": "0000320193-24-000123",
+            "ticker": "AAPL",
+            "company_name": "Apple Inc",
+            "sic_code": 3571,
+            "fiscal_year": 2024,
+            "facts_json_path": str(facts_path),
+            "xbrl_path": None,
+            "html_path": None,
+            "txt_path": None,
+        }
+    ]
+
+
+@pytest.fixture
 def sample_html_file(tmp_path):
     """Create a sample HTML filing with an income statement table."""
     html_content = """

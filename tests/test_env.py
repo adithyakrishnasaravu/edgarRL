@@ -2,6 +2,7 @@
 Tests for env.py — Gymnasium RL environment for EDGAR 10-K extraction.
 """
 
+import json
 import os
 from pathlib import Path
 from unittest.mock import patch
@@ -143,23 +144,30 @@ class TestEnvStep:
         _, _, terminated, _, _ = env.step(5)  # flag_missing
         assert terminated is True
 
-    def test_high_reward_terminates(self, sample_registry):
-        """If reward >= 0.8, episode should terminate."""
-        # Use injected extractor that returns exact ground truth
+    def test_high_reward_terminates(self, full_ground_truth_registry):
+        """If reward >= 0.8, episode should terminate.
+
+        Uses a registry that has facts for all 12 fields so that every reset()
+        produces a non-None ground_truth regardless of which field is selected
+        (env._rng is NOT seeded by reset(seed=), so field selection is always
+        non-deterministic — see memory gotcha: Gymnasium env.reset(seed=) does
+        NOT reset custom RNGs).
+        """
+        # Extractor returns exact ground truth when available, guaranteeing reward=1.0
         def mock_extractor(ctx):
             if ctx.ground_truth is not None:
                 return ctx.ground_truth, 1.0, {"mock": True}
             return 100.0, 1.0, {"mock": True}
 
         env = EdgarExtractionEnv(
-            sample_registry,
+            full_ground_truth_registry,
             extractors={0: mock_extractor},
         )
-        env.reset(seed=42)
+        env.reset()
+        # ground_truth is always available; exact match gives reward=1.0 >= 0.8
         _, reward, terminated, _, _ = env.step(0)
-        # If ground truth exists and we return exact match, reward=1.0 >= 0.8
-        if reward >= 0.8:
-            assert terminated is True
+        assert reward == pytest.approx(1.0)
+        assert terminated is True
 
     def test_max_steps_terminates(self, sample_registry):
         env = EdgarExtractionEnv(sample_registry, max_steps_per_episode=2)

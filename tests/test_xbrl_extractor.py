@@ -228,7 +228,7 @@ class TestExtractField:
         assert result.value in (394_328_000_000.0, 383_285_000_000.0)
         # Tag is at index 1 in xbrl_tags list (preferred is us-gaap:Revenues at index 0)
         # so confidence = max(0.6, 1.0 - 1*0.1) = 0.9
-        assert result.confidence > 0.0
+        assert result.confidence == pytest.approx(0.9)
         assert result.xbrl_tag is not None
         assert result.error is None
 
@@ -256,7 +256,9 @@ class TestExtractField:
         filing = FilingXBRL(
             accession="test", cik="test", fiscal_year_end=None,
             facts={
-                # Revenue: preferred tag is index 0, this is index 1
+                # Revenue xbrl_tags[0] = us-gaap:Revenues (not present)
+                # Revenue xbrl_tags[1] = us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax (not present)
+                # Revenue xbrl_tags[2] = us-gaap:RevenueFromContractWithCustomerIncludingAssessedTax (present)
                 "us-gaap:RevenueFromContractWithCustomerIncludingAssessedTax": [
                     {"value": 100.0, "unit": "USD", "period": "2024-01-01/2024-12-31"},
                 ],
@@ -265,7 +267,7 @@ class TestExtractField:
         result = extract_field(filing, "revenue")
         assert result.value == 100.0
         # Tag at index 2 in the list → confidence = max(0.6, 1.0 - 2*0.1) = 0.8
-        assert result.confidence < 1.0
+        assert result.confidence == pytest.approx(0.8)
 
     def test_target_period_filter(self, sample_filing_xbrl):
         result = extract_field(
